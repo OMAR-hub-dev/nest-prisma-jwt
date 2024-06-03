@@ -8,8 +8,10 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { signinDto } from './dto/signinDto';
 import { resetPasswordDto } from './dto/resetPasswordDto';
+import { ResetPasswordConfirmationDto } from './dto/resetPasswordConfirmationDto';
 @Injectable()
 export class AuthService {
+  
   
   constructor(
     private readonly prismaService: PrismaService,
@@ -81,5 +83,27 @@ export class AuthService {
       encoding: 'base32',
     })
     const url = "https://localhost:3000/auth/reset-confiramtion"
+    await this.mailerService.sendResetPassword(email, url, code)
+    return {data : "reset password est bien envoyé"}
   }
+  
+  async resetPasswordConfirmation(resetConfirmDto: ResetPasswordConfirmationDto) {
+    const { email, password, code  } = resetConfirmDto
+    // verification d el'utilisateur
+    const user = await this.prismaService.user.findUnique({ where: { email } });
+    if (!user) { throw new NotFoundException('cet utilisateur n\'existe pas');};
+    const match = speakeasy.totp.verify({
+      secret : this.configService.get('OTP_CODE'),
+      token: code,
+      digits:5,
+      step: 60*15,
+      encoding: 'base32',
+    })
+    if (!match)throw new UnauthorizedException('jetton invlaide ou expiré ')
+      const hash = await bcrypt.hash(password, 10);
+    await this.prismaService.user.update({where: { email}, data:{password: hash}})
+    return {data : "mot de passe bien modifié"}
+  }
+
+
 }

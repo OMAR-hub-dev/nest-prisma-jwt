@@ -25,5 +25,16 @@ export class MailerService {
             })
         }
 
-        // async sendResetPassword()
+        async sendResetPassword(userEmail: string , url: string, code : string){
+            (await this.transporter()).sendMail({
+                from: "blog_nest@example.com",
+                to : userEmail,
+                subject: "Reset password",
+                html: `
+                <a href=${url} >Reset password</a>
+                <p>Secret code <strong>${code}</strong></p>
+                <p>code will expire in 15 minutes</p>
+                `                
+            })
+        }
 }
